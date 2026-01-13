@@ -37,13 +37,25 @@ class DoomscrollDetectorAPI:
             self.predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
             logger.info("Using dlib for face tracking")
         except:
-            self.use_dlib = False
             self.face_cascade = cv2.CascadeClassifier(
                 cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
             )
             self.eye_cascade = cv2.CascadeClassifier(
                 cv2.data.haarcascades + 'haarcascade_eye.xml'
             )
+            
+            # Load roasting messages from root config
+            import json
+            try:
+                # Try both paths just in case
+                config_path = "../config.json" if os.path.exists("../config.json") else "config.json"
+                with open(config_path, "r") as f:
+                    config = json.load(f)
+                    self.roasts = config['roasting']['messages']
+            except Exception as e:
+                logger.warning(f"Could not load roasts: {e}")
+                self.roasts = ["PUT. THE. PHONE. DOWN. NOW."]
+            
             logger.info("Using OpenCV Haar Cascades for face tracking")
 
     def detect_doomscroll(self, frame):
@@ -166,9 +178,12 @@ async def detect(data: ImageData):
         # Detect
         is_doomscrolling, boxes = detector.detect_doomscroll(frame)
         
+        import random
+        message = random.choice(detector.roasts) if is_doomscrolling else 'Good posture!'
+        
         return DetectionResponse(
             doomscrolling=is_doomscrolling,
-            message='Doomscrolling detected!' if is_doomscrolling else 'Good posture!',
+            message=message,
             boxes=boxes
         )
     
