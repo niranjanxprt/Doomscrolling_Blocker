@@ -25,6 +25,7 @@ class ImageData(BaseModel):
 class DetectionResponse(BaseModel):
     doomscrolling: bool
     message: str
+    boxes: list = []  # Added to return coordinates
 
 class DoomscrollDetectorAPI:
     def __init__(self):
@@ -57,8 +58,11 @@ class DoomscrollDetectorAPI:
     def _detect_opencv(self, frame, gray):
         """OpenCV-based detection"""
         faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
+        boxes = []
+        is_doomscrolling = False
         
         for (x, y, w, h) in faces:
+            boxes.append({"type": "face", "x": int(x), "y": int(y), "w": int(w), "h": int(h)})
             roi_gray = gray[y:y+int(h*0.6), x:x+w]
             eyes = self.eye_cascade.detectMultiScale(roi_gray, 1.1, 5)
             
@@ -77,6 +81,14 @@ class DoomscrollDetectorAPI:
                 detection_score += 1
             
             if len(eyes) >= 2:
+                for (ex, ey, ew, eh) in eyes:
+                    boxes.append({
+                        "type": "eye", 
+                        "x": int(x + ex), 
+                        "y": int(y + ey), 
+                        "w": int(ew), 
+                        "h": int(eh)
+                    })
                 eye_y_positions = [y + ey + eh//2 for (ex, ey, ew, eh) in eyes]
                 avg_eye_y = sum(eye_y_positions) / len(eye_y_positions)
                 eye_position_in_face = (avg_eye_y - y) / h
@@ -88,15 +100,21 @@ class DoomscrollDetectorAPI:
             elif len(eyes) < 2:
                 detection_score += 1
             
-            return detection_score >= 3
+            if detection_score >= 3:
+                is_doomscrolling = True
         
-        return False
+        return is_doomscrolling, boxes
 
     def _detect_dlib(self, frame, gray):
         """dlib-based detection"""
         faces = self.detector(gray)
+        boxes = []
+        is_doomscrolling = False
         
         for face in faces:
+            x, y, w, h = face.left(), face.top(), face.width(), face.height()
+            boxes.append({"type": "face", "x": int(x), "y": int(y), "w": int(w), "h": int(h)})
+            
             landmarks = self.predictor(gray, face)
             nose_tip = (landmarks.part(30).x, landmarks.part(30).y)
             chin = (landmarks.part(8).x, landmarks.part(8).y)
@@ -119,9 +137,10 @@ class DoomscrollDetectorAPI:
             
             head_tilt = (chin[1] - nose_tip[1]) / (nose_tip[1] - forehead_approx[1] + 1e-6)
             
-            return head_tilt > 1.3 or eye_ratio < 0.35
+            if head_tilt > 1.3 or eye_ratio < 0.35:
+                is_doomscrolling = True
         
-        return False
+        return is_doomscrolling, boxes
 
 # Initialize detector
 detector = DoomscrollDetectorAPI()
@@ -145,11 +164,12 @@ async def detect(data: ImageData):
         frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         
         # Detect
-        is_doomscrolling = detector.detect_doomscroll(frame)
+        is_doomscrolling, boxes = detector.detect_doomscroll(frame)
         
         return DetectionResponse(
             doomscrolling=is_doomscrolling,
-            message='Doomscrolling detected!' if is_doomscrolling else 'Good posture!'
+            message='Doomscrolling detected!' if is_doomscrolling else 'Good posture!',
+            boxes=boxes
         )
     
     except Exception as e:
