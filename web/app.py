@@ -37,6 +37,7 @@ class DoomscrollDetectorAPI:
             self.predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
             logger.info("Using dlib for face tracking")
         except:
+            self.use_dlib = False
             self.face_cascade = cv2.CascadeClassifier(
                 cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
             )
@@ -107,8 +108,8 @@ class DoomscrollDetectorAPI:
                 avg_eye_y = sum(eye_y_positions) / len(eye_y_positions)
                 eye_position_in_face = (avg_eye_y - y) / h
                 
-                # Eyes below 65% of face height is bad
-                if eye_position_in_face > 0.65:
+                # Eyes below 60% of face height is bad (main.py uses 0.6)
+                if eye_position_in_face > 0.62:
                     detection_score += 2
                 elif eye_position_in_face > 0.58:
                     detection_score += 1
@@ -116,8 +117,8 @@ class DoomscrollDetectorAPI:
                 # One eye or no eyes often happens when looking down sharply
                 detection_score += 1
             
-            # Require score of 4 for better accuracy (was 3)
-            if detection_score >= 4:
+            # Threshold of 3 (was 4) to be more responsive like main.py
+            if detection_score >= 3:
                 is_doomscrolling = True
                 
             logger.info(f"Detection - Ratio: {face_position_ratio:.2f}, Score: {detection_score}")
