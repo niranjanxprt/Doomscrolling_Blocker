@@ -6,7 +6,7 @@ let detectionInterval;
 let cooldownActive = false;
 let lastDetectionTime = 0;
 let consecutiveBadDetections = 0;
-const BAD_DETECTION_THRESHOLD = 3; // Must be bad 3 times in a row
+const BAD_DETECTION_THRESHOLD = 2; // Trigger faster (was 3)
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -97,7 +97,8 @@ async function captureAndDetect() {
                 updateStatus('Doomscrolling', result.message, 'bad', '🚨');
                 playRickroll(result.message);
             } else {
-                updateStatus('Suspicious', `Detecting... (${consecutiveBadDetections}/3)`, 'neutral', '🧐');
+                console.log(`Bad detection: ${consecutiveBadDetections}/${BAD_DETECTION_THRESHOLD}`);
+                updateStatus('Suspicious', `Detecting... (${consecutiveBadDetections}/${BAD_DETECTION_THRESHOLD})`, 'neutral', '🧐');
             }
         } else {
             consecutiveBadDetections = 0;

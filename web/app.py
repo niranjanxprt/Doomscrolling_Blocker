@@ -84,11 +84,10 @@ class DoomscrollDetectorAPI:
             frame_height = frame.shape[0]
             face_position_ratio = face_center_y / frame_height
             
-            # Relaxed thresholds (main.py uses 0.58)
-            # 0.65+ is very likely doomscrolling, 0.58+ is suspicious
-            if face_position_ratio > 0.65:
+            # Match main.py thresholds for better sensitivity
+            if face_position_ratio > 0.58:
                 detection_score += 2
-            elif face_position_ratio > 0.58:
+            elif face_position_ratio > 0.52:
                 detection_score += 1
             
             aspect_ratio = h / w
@@ -108,10 +107,10 @@ class DoomscrollDetectorAPI:
                 avg_eye_y = sum(eye_y_positions) / len(eye_y_positions)
                 eye_position_in_face = (avg_eye_y - y) / h
                 
-                # Eyes below 60% of face height is bad (main.py uses 0.6)
-                if eye_position_in_face > 0.62:
+                # Match main.py eye level thresholds
+                if eye_position_in_face > 0.60:
                     detection_score += 2
-                elif eye_position_in_face > 0.58:
+                elif eye_position_in_face > 0.52:
                     detection_score += 1
             elif len(eyes) < 2:
                 # One eye or no eyes often happens when looking down sharply
