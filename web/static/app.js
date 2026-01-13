@@ -94,8 +94,8 @@ async function captureAndDetect() {
                 detectionCountSpan.classList.add('pulse');
                 setTimeout(() => detectionCountSpan.classList.remove('pulse'), 500);
 
-                updateStatus('Doomscrolling', 'Detected looking down!', 'bad', '🚨');
-                playRickroll();
+                updateStatus('Doomscrolling', result.message, 'bad', '🚨');
+                playRickroll(result.message);
             } else {
                 updateStatus('Suspicious', `Detecting... (${consecutiveBadDetections}/3)`, 'neutral', '🧐');
             }
@@ -140,9 +140,12 @@ function drawDetectionBoxes(boxes, isBad) {
     });
 }
 
-function playRickroll() {
+function playRickroll(message) {
     if (!rickrollPlaying && !cooldownActive) {
         rickrollPlaying = true;
+        if (message) {
+            rickrollContainer.querySelector('h1').textContent = message;
+        }
         rickrollContainer.classList.remove('hidden');
         rickrollVideo.play();
     }
