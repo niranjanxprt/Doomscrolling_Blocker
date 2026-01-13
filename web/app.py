@@ -68,7 +68,7 @@ class DoomscrollDetectorAPI:
             return self._detect_opencv(frame, gray)
 
     def _detect_opencv(self, frame, gray):
-        """OpenCV-based detection"""
+        """OpenCV-based detection with score-based smoothing"""
         faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
         boxes = []
         is_doomscrolling = False
@@ -83,9 +83,11 @@ class DoomscrollDetectorAPI:
             frame_height = frame.shape[0]
             face_position_ratio = face_center_y / frame_height
             
-            if face_position_ratio > 0.58:
+            # Relaxed thresholds (main.py uses 0.58)
+            # 0.65+ is very likely doomscrolling, 0.58+ is suspicious
+            if face_position_ratio > 0.65:
                 detection_score += 2
-            elif face_position_ratio > 0.52:
+            elif face_position_ratio > 0.58:
                 detection_score += 1
             
             aspect_ratio = h / w
@@ -105,15 +107,20 @@ class DoomscrollDetectorAPI:
                 avg_eye_y = sum(eye_y_positions) / len(eye_y_positions)
                 eye_position_in_face = (avg_eye_y - y) / h
                 
-                if eye_position_in_face > 0.6:
+                # Eyes below 65% of face height is bad
+                if eye_position_in_face > 0.65:
                     detection_score += 2
-                elif eye_position_in_face > 0.52:
+                elif eye_position_in_face > 0.58:
                     detection_score += 1
             elif len(eyes) < 2:
+                # One eye or no eyes often happens when looking down sharply
                 detection_score += 1
             
-            if detection_score >= 3:
+            # Require score of 4 for better accuracy (was 3)
+            if detection_score >= 4:
                 is_doomscrolling = True
+                
+            logger.info(f"Detection - Ratio: {face_position_ratio:.2f}, Score: {detection_score}")
         
         return is_doomscrolling, boxes
 

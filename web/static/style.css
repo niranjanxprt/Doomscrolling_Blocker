@@ -288,8 +288,15 @@ header h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 40px 20px;
     transition: all 0.4s ease;
+    overflow-y: auto;
+}
+
+@media (max-height: 700px) {
+    .rickroll-overlay {
+        align-items: flex-start;
+    }
 }
 
 .rickroll-overlay.hidden {

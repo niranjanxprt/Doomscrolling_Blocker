@@ -5,6 +5,8 @@ let rickrollPlaying = false;
 let detectionInterval;
 let cooldownActive = false;
 let lastDetectionTime = 0;
+let consecutiveBadDetections = 0;
+const BAD_DETECTION_THRESHOLD = 3; // Must be bad 3 times in a row
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -34,12 +36,14 @@ async function initCamera() {
         video.srcObject = stream;
 
         video.onloadedmetadata = () => {
-            overlayCanvas.width = video.videoWidth;
-            overlayCanvas.height = video.videoHeight;
-            detectionCanvas.width = video.videoWidth;
-            detectionCanvas.height = video.videoHeight;
+            resizeCanvases();
             updateStatus('Ready', 'System online and waiting', 'neutral', '🔍');
         };
+
+        // Fallback for metadata already loaded
+        if (video.readyState >= 2) {
+            resizeCanvases();
+        }
     } catch (error) {
         console.error('Camera error:', error);
         updateStatus('Error', 'Camera access denied', 'bad', '⚠️');
@@ -83,19 +87,32 @@ async function captureAndDetect() {
         drawDetectionBoxes(result.boxes, result.doomscrolling);
 
         if (result.doomscrolling) {
-            detectionCount++;
-            detectionCountSpan.textContent = detectionCount;
-            detectionCountSpan.classList.add('pulse');
-            setTimeout(() => detectionCountSpan.classList.remove('pulse'), 500);
+            consecutiveBadDetections++;
+            if (consecutiveBadDetections >= BAD_DETECTION_THRESHOLD) {
+                detectionCount++;
+                detectionCountSpan.textContent = detectionCount;
+                detectionCountSpan.classList.add('pulse');
+                setTimeout(() => detectionCountSpan.classList.remove('pulse'), 500);
 
-            updateStatus('Doomscrolling', 'Detected looking down!', 'bad', '🚨');
-            playRickroll();
+                updateStatus('Doomscrolling', 'Detected looking down!', 'bad', '🚨');
+                playRickroll();
+            } else {
+                updateStatus('Suspicious', `Detecting... (${consecutiveBadDetections}/3)`, 'neutral', '🧐');
+            }
         } else {
+            consecutiveBadDetections = 0;
             updateStatus('Focused', 'Excellent posture!', 'good', '✅');
         }
     } catch (error) {
         console.error('Detection error:', error);
     }
+}
+
+function resizeCanvases() {
+    overlayCanvas.width = video.videoWidth || 640;
+    overlayCanvas.height = video.videoHeight || 480;
+    detectionCanvas.width = video.videoWidth || 640;
+    detectionCanvas.height = video.videoHeight || 480;
 }
 
 function drawDetectionBoxes(boxes, isBad) {
@@ -106,8 +123,8 @@ function drawDetectionBoxes(boxes, isBad) {
     boxes.forEach(box => {
         const color = isBad ? '#ef4444' : '#10b981';
         overlayCtx.strokeStyle = color;
-        overlayCtx.lineWidth = 3;
-        overlayCtx.shadowBlur = 10;
+        overlayCtx.lineWidth = 5; // Thicker lines
+        overlayCtx.shadowBlur = 15;
         overlayCtx.shadowColor = color;
 
         // Draw box (mirrored back because UI is mirrored)
