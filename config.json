@@ -1,0 +1,36 @@
+{
+    "camera": {
+        "preferred_index": 0,
+        "warmup_seconds": 2.0,
+        "retry_delay_seconds": 5
+    },
+    "detection": {
+        "threshold_frames": 1,
+        "face_position_ratio": 0.58,
+        "eye_position_ratio": 0.6
+    },
+    "roasting": {
+        "cooldown_seconds": 3,
+        "messages": [
+            "You'll fail if you don't stop!",
+            "Your dreams called - they want your attention back!",
+            "Scrolling won't make that deadline disappear!",
+            "The phone can wait. Your future can't.",
+            "Success doesn't scroll itself into existence!",
+            "That screen won't study for you!",
+            "Your goals > Your feed. Remember that.",
+            "Future you is watching. They're disappointed.",
+            "Every scroll is a step backward. Look up!",
+            "The algorithm wins again. Pathetic.",
+            "Is this really more important than your goals?",
+            "Your productivity just left the chat.",
+            "Doomscrolling detected! You're better than this!",
+            "PUT. THE. PHONE. DOWN. NOW.",
+            "This is why you're behind schedule."
+        ]
+    },
+    "rickroll": {
+        "video_path": "rickroll.mp4",
+        "enabled": true
+    }
+}

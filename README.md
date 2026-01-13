@@ -10,6 +10,9 @@ A Python program that uses your webcam to detect when you're looking down at you
 - **Rickroll punishment** - automatically plays `rickroll.mp4` when you're doomscrolling
 - **Auto-close video** - stops the video when you return to good posture
 - **Automatic fallback** - works with dlib or OpenCV Haar Cascades
+- **Configurable** - customize detection thresholds, messages, and more via `config.json`
+- **Logging** - detailed logs saved to `doomscroll_blocker.log`
+- **Auto-recovery** - automatically restarts if camera disconnects
 
 ## Installation
 
@@ -41,6 +44,7 @@ bunzip2 shape_predictor_68_face_landmarks.dat.bz2
 
 1. Place your `rickroll.mp4` file in the project directory
 2. Make sure QuickTime Player (macOS), VLC (Linux), or default video player (Windows) is installed
+3. (Optional) Customize `config.json` to your preferences
 
 ## Usage
 
@@ -54,6 +58,35 @@ python main.py
 - Return to good posture = Video automatically closes
 - Press **'q'** to quit
 
+## Configuration
+
+Edit `config.json` to customize the behavior:
+
+```json
+{
+  "camera": {
+    "preferred_index": 0,
+    "warmup_seconds": 2.0,
+    "retry_delay_seconds": 5
+  },
+  "detection": {
+    "threshold_frames": 1,
+    "face_position_ratio": 0.58,
+    "eye_position_ratio": 0.6
+  },
+  "roasting": {
+    "cooldown_seconds": 3,
+    "messages": [
+      "Your custom roast messages here!"
+    ]
+  },
+  "rickroll": {
+    "video_path": "rickroll.mp4",
+    "enabled": true
+  }
+}
+```
+
 ## How It Works
 
 1. **Face Detection**: Detects your face using either dlib or OpenCV Haar Cascades
@@ -66,14 +99,6 @@ python main.py
 5. **Rickroll**: Automatically opens and plays `rickroll.mp4` when doomscrolling detected
 6. **Auto-stop**: Closes the video when you return to normal posture
 
-## Sample Roasts
-
-- "You'll fail if you don't stop!"
-- "Your dreams called - they want your attention back!"
-- "Future you is watching. They're disappointed."
-- "The algorithm wins again. Pathetic."
-- "PUT. THE. PHONE. DOWN. NOW."
-
 ## Requirements
 
 - Python 3.13+
@@ -84,28 +109,30 @@ python main.py
 - QuickTime Player (macOS) or VLC (Linux) or Windows Media Player (Windows)
 - `rickroll.mp4` file in project directory
 
-## Customization
-
-Edit `main.py` to customize:
-- **Roast messages**: Modify the `self.roasts` list (line 31-45)
-- **Detection sensitivity**: Adjust `face_position_ratio` thresholds (line 118, 124)
-- **Roast frequency**: Change `self.roast_cooldown` (line 50, default: 3 seconds)
-- **Video file**: Change `self.rickroll_path` (line 55) to use a different video
-
 ## Troubleshooting
 
 **Video doesn't autoplay on macOS:**
 - Make sure QuickTime Player is installed
 - The script uses AppleScript to force autoplay
+- Check System Settings > Privacy & Security > Automation for terminal permissions
 
 **Video doesn't close automatically:**
 - The script sends a kill command to QuickTime Player
 - You may need to manually close it if the process detection fails
 
 **Detection is too sensitive/not sensitive enough:**
-- Adjust the thresholds in `detect_doomscroll_opencv()` or `detect_doomscroll_dlib()`
-- Change `face_position_ratio > 0.55` to a higher (less sensitive) or lower (more sensitive) value
+- Adjust the thresholds in `config.json`
+- Change `face_position_ratio` to a higher (less sensitive) or lower (more sensitive) value
+
+**Camera not found:**
+- Check logs in `doomscroll_blocker.log`
+- Ensure your terminal/IDE has camera permissions (System Settings > Privacy & Security > Camera)
+- Try changing `preferred_index` in `config.json`
 
 ## License
 
 Free to use. Stay productive! 💪
+
+---
+
+*Inspired by [kristelTech/Doomscrolling_Blocker](https://github.com/kristelTech/Doomscrolling_Blocker)*

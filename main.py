@@ -5,9 +5,28 @@ import time
 import threading
 import subprocess
 import os
+import logging
+import json
+from pathlib import Path
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('doomscroll_blocker.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 class DoomscrollDetector:
-    def __init__(self):
+    def __init__(self, config_path='config.json'):
+        """Initialize detector with configuration"""
+        # Load configuration
+        self.config = self.load_config(config_path)
+        logger.info("Initializing Doomscrolling Blocker...")
+        
         # face landmark detection
         try:
             import dlib
@@ -15,8 +34,8 @@ class DoomscrollDetector:
             self.detector = dlib.get_frontal_face_detector()
             # Download from: http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2
             self.predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
-            print("Using dlib for face tracking")
-        except:
+            logger.info("Using dlib for face tracking")
+        except Exception as e:
             # Fallback to OpenCV Haar Cascades
             self.use_dlib = False
             self.face_cascade = cv2.CascadeClassifier(
@@ -25,49 +44,69 @@ class DoomscrollDetector:
             self.eye_cascade = cv2.CascadeClassifier(
                 cv2.data.haarcascades + 'haarcascade_eye.xml'
             )
-            print("Using OpenCV Haar Cascades for face tracking")
+            logger.info(f"Using OpenCV Haar Cascades for face tracking (dlib unavailable: {e})")
 
-        # Roasting messages
-        self.roasts = [
-            "You'll fail if you don't stop!",
-            "Your dreams called - they want your attention back!",
-            "Scrolling won't make that deadline disappear!",
-            "The phone can wait. Your future can't.",
-            "Success doesn't scroll itself into existence!",
-            "That screen won't study for you!",
-            "Your goals > Your feed. Remember that.",
-            "Your parents do not love you",
-            "Future you is watching. They're disappointed.",
-            "Every scroll is a step backward. Look up!",
-            "The algorithm wins again. Pathetic.",
-            "You will be alone forever",
-            "Is this really more important than your goals?",
-            "Your productivity just left the chat.",
-            "Doomscrolling detected! You're better than this!",
-            "PUT. THE. PHONE. DOWN. NOW.",
-            "You re such a disappointment to your family",
-            "This is why you're behind schedule."
-        ]
+        # Roasting messages from config
+        self.roasts = self.config['roasting']['messages']
 
         self.last_roast_time = 0
-        self.roast_cooldown = 3  # seconds between roasts
+        self.roast_cooldown = self.config['roasting']['cooldown_seconds']
         self.current_roast = ""
         self.prev_eye_ratio = 0.5
 
         # Rickroll video
-        self.rickroll_path = "rickroll.mp4"
+        self.rickroll_path = self.config['rickroll']['video_path']
+        self.rickroll_enabled = self.config['rickroll']['enabled']
         self.rickroll_process = None
         self.is_rickrolling = False
 
         # Detection state tracking for stability
         self.doomscroll_count = 0
         self.normal_count = 0
-        self.detection_threshold = 3  # Frames needed to confirm state change
+        self.detection_threshold = self.config['detection']['threshold_frames']
+        
+        logger.info("Initialization complete")
 
-        # Detection state tracking for stability
-        self.doomscroll_count = 0
-        self.normal_count = 0
-        self.detection_threshold = 1  # Instant response
+    def load_config(self, config_path):
+        """Load configuration from JSON file"""
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            logger.info(f"Loaded configuration from {config_path}")
+            return config
+        except FileNotFoundError:
+            logger.warning(f"Config file {config_path} not found, using defaults")
+            return self.get_default_config()
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in config file: {e}")
+            return self.get_default_config()
+
+    def get_default_config(self):
+        """Return default configuration"""
+        return {
+            "camera": {
+                "preferred_index": 0,
+                "warmup_seconds": 2.0,
+                "retry_delay_seconds": 5
+            },
+            "detection": {
+                "threshold_frames": 1,
+                "face_position_ratio": 0.58,
+                "eye_position_ratio": 0.6
+            },
+            "roasting": {
+                "cooldown_seconds": 3,
+                "messages": [
+                    "You'll fail if you don't stop!",
+                    "Your dreams called - they want your attention back!",
+                    "PUT. THE. PHONE. DOWN. NOW."
+                ]
+            },
+            "rickroll": {
+                "video_path": "rickroll.mp4",
+                "enabled": True
+            }
+        }
 
     def detect_doomscroll_dlib(self, frame, gray):
         """Detect doomscrolling using dlib landmarks"""
@@ -175,36 +214,46 @@ class DoomscrollDetector:
         return False
 
     def play_rickroll(self):
-        #Play rickroll video with autoplay (only if not already playing)
+        """Play rickroll video with autoplay (only if not already playing)"""
+        if not self.rickroll_enabled:
+            return
+            
         if not self.is_rickrolling and os.path.exists(self.rickroll_path):
             self.is_rickrolling = True
+            logger.info("Playing rickroll...")
+            
             # Use system default video player with autoplay in background thread
             def start_video():
-                if os.name == 'posix':  # macOS/Linux
-                    if os.uname().sysname == 'Darwin':  # macOS
-                        # Use afplay for audio or osascript to force QuickTime to play
-                        self.rickroll_process = subprocess.Popen(
-                            ['osascript', '-e', f'tell application "QuickTime Player" to open POSIX file "{os.path.abspath(self.rickroll_path)}"',
-                             '-e', 'tell application "QuickTime Player" to play front document'],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL
-                        )
-                    else:  # Linux
-                        # Try vlc first because of autoplay, fallback to xdg-open
-                        try:
+                try:
+                    if os.name == 'posix':  # macOS/Linux
+                        if os.uname().sysname == 'Darwin':  # macOS
+                            # Use afplay for audio or osascript to force QuickTime to play
                             self.rickroll_process = subprocess.Popen(
-                                ['vlc', '--play-and-exit', self.rickroll_path],
+                                ['osascript', '-e', f'tell application "QuickTime Player" to open POSIX file "{os.path.abspath(self.rickroll_path)}"',
+                                 '-e', 'tell application "QuickTime Player" to play front document'],
                                 stdout=subprocess.DEVNULL,
                                 stderr=subprocess.DEVNULL
                             )
-                        except:
-                            self.rickroll_process = subprocess.Popen(['xdg-open', self.rickroll_path])
-                else:  # Windows - Someone test on windows pls
-                    os.startfile(self.rickroll_path)
+                        else:  # Linux
+                            # Try vlc first because of autoplay, fallback to xdg-open
+                            try:
+                                self.rickroll_process = subprocess.Popen(
+                                    ['vlc', '--play-and-exit', self.rickroll_path],
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL
+                                )
+                            except:
+                                self.rickroll_process = subprocess.Popen(['xdg-open', self.rickroll_path])
+                    else:  # Windows
+                        os.startfile(self.rickroll_path)
+                except Exception as e:
+                    logger.error(f"Failed to play rickroll: {e}")
 
             # Start video in background thread to avoid blocking
             video_thread = threading.Thread(target=start_video, daemon=True)
             video_thread.start()
+        elif not os.path.exists(self.rickroll_path):
+            logger.warning(f"Rickroll video not found: {self.rickroll_path}")
 
     def stop_rickroll(self):
         """Stop rickroll video"""
@@ -246,102 +295,112 @@ class DoomscrollDetector:
 
     def init_camera(self):
         """Robust camera initialization"""
+        warmup_time = self.config['camera']['warmup_seconds']
+        
         # Try indices 0 and 1
         for index in [0, 1]:
-            print(f"Attempting to open camera index {index}...")
-            cap = cv2.VideoCapture(index)
-            if not cap.isOpened():
-                print(f"Failed to open camera index {index}")
-                continue
+            logger.info(f"Attempting to open camera index {index}...")
+            try:
+                cap = cv2.VideoCapture(index)
+                if not cap.isOpened():
+                    logger.warning(f"Failed to open camera index {index}")
+                    continue
 
-            # Warmup
-            print(f"Camera index {index} opened, warming up...")
-            time.sleep(2.0)
-            
-            # Verify we can actually get a frame
-            ret, frame = cap.read()
-            if ret and frame is not None and frame.size > 0:
-                print(f"Successfully initialized camera {index}")
-                return cap
-            
-            print(f"Failed to grab frame from camera {index}")
-            cap.release()
-            
+                # Warmup
+                logger.info(f"Camera index {index} opened, warming up for {warmup_time}s...")
+                time.sleep(warmup_time)
+                
+                # Verify we can actually get a frame
+                ret, frame = cap.read()
+                if ret and frame is not None and frame.size > 0:
+                    logger.info(f"Successfully initialized camera {index}")
+                    return cap
+                
+                logger.warning(f"Failed to grab frame from camera {index}")
+                cap.release()
+            except Exception as e:
+                logger.error(f"Error initializing camera {index}: {e}")
+                
         return None
 
     def run(self):
         """Main loop"""
-        print("Doomscrolling Blocker Started!")
-        print("Press 'q' to quit")
+        logger.info("Doomscrolling Blocker Started!")
+        logger.info("Press 'q' to quit")
+
+        retry_delay = self.config['camera']['retry_delay_seconds']
 
         while True:
             cap = self.init_camera()
 
             if cap is None:
-                print("Error: Could not open any webcam. Retrying in 5 seconds...")
-                time.sleep(5)
+                logger.error(f"Could not open any webcam. Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
                 continue
 
-            print("Camera started. Looking for your face...")
+            logger.info("Camera started. Looking for your face...")
             
-            while cap.isOpened():
-                success, frame = cap.read()
-                if not success:
-                    print("Failed to grab frame - Retrying...")
-                    time.sleep(0.1)
-                    # If we fail too many times continuously, break to outer loop to re-init
-                    continue
+            try:
+                while cap.isOpened():
+                    success, frame = cap.read()
+                    if not success:
+                        logger.warning("Failed to grab frame - Retrying...")
+                        time.sleep(0.1)
+                        continue
 
-                # Flip frame horizontally for mirror view
-                frame = cv2.flip(frame, 1)
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    # Flip frame horizontally for mirror view
+                    frame = cv2.flip(frame, 1)
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-                # Detect doomscrolling
-                if self.use_dlib:
-                    raw_detection = self.detect_doomscroll_dlib(frame, gray)
-                else:
-                    raw_detection = self.detect_doomscroll_opencv(frame, gray)
+                    # Detect doomscrolling
+                    if self.use_dlib:
+                        raw_detection = self.detect_doomscroll_dlib(frame, gray)
+                    else:
+                        raw_detection = self.detect_doomscroll_opencv(frame, gray)
 
-                # Stabilize detection with frame counting to avoid flickering
-                if raw_detection:
-                    self.doomscroll_count += 1
-                    self.normal_count = 0
-                else:
-                    self.normal_count += 1
-                    self.doomscroll_count = 0
+                    # Stabilize detection with frame counting to avoid flickering
+                    if raw_detection:
+                        self.doomscroll_count += 1
+                        self.normal_count = 0
+                    else:
+                        self.normal_count += 1
+                        self.doomscroll_count = 0
 
-                # Only trigger if we've detected consistently for threshold frames
-                is_doomscrolling = self.doomscroll_count >= self.detection_threshold
-                is_normal = self.normal_count >= self.detection_threshold
+                    # Only trigger if we've detected consistently for threshold frames
+                    is_doomscrolling = self.doomscroll_count >= self.detection_threshold
+                    is_normal = self.normal_count >= self.detection_threshold
 
-                if is_doomscrolling:
-                    self.show_roast(frame)
-                    # Play rickroll when doomscrolling
-                    self.play_rickroll()
-                elif is_normal:
-                    # Show encouraging message
-                    cv2.putText(frame, "Good posture! Keep it up!", (10, 30),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                    # Stop rickroll when back to normal
-                    self.stop_rickroll()
-                else:
-                    # Transitioning state - show neutral message
-                    cv2.putText(frame, "Monitoring...", (10, 30),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+                    if is_doomscrolling:
+                        self.show_roast(frame)
+                        # Play rickroll when doomscrolling
+                        self.play_rickroll()
+                    elif is_normal:
+                        # Show encouraging message
+                        cv2.putText(frame, "Good posture! Keep it up!", (10, 30),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                        # Stop rickroll when back to normal
+                        self.stop_rickroll()
+                    else:
+                        # Transitioning state - show neutral message
+                        cv2.putText(frame, "Monitoring...", (10, 30),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
 
-                # Display frame
-                cv2.imshow('Doomscrolling Blocker', frame)
+                    # Display frame
+                    cv2.imshow('Doomscrolling Blocker', frame)
 
-                # Exit on 'q'
-                if cv2.waitKey(5) & 0xFF == ord('q'):
-                    self.stop_rickroll()
-                    cap.release()
-                    cv2.destroyAllWindows()
-                    return
-
+                    # Exit on 'q'
+                    if cv2.waitKey(5) & 0xFF == ord('q'):
+                        logger.info("User requested quit")
+                        self.stop_rickroll()
+                        cap.release()
+                        cv2.destroyAllWindows()
+                        return
+            except Exception as e:
+                logger.error(f"Error in main loop: {e}")
+                
             # If inner loop breaks (camera disconnect), release and retry
             cap.release()
-            print("Camera disconnected/closed. Restarting...")
+            logger.warning("Camera disconnected/closed. Restarting...")
             time.sleep(1)
 
 
