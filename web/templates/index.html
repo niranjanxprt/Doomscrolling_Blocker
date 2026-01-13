@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doomscrolling Blocker - Web Edition</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱🚫 Doomscrolling Blocker</h1>
+            <p>Web Edition - Stay Focused!</p>
+        </header>
+
+        <div class="main-content">
+            <div class="video-container">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+            </div>
+
+            <div class="status-panel">
+                <div id="status" class="status neutral">
+                    <h2>Initializing...</h2>
+                    <p>Waiting for camera access</p>
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">Start Monitoring</button>
+                    <button id="stopBtn" class="btn btn-secondary" disabled>Stop</button>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Detections:</span>
+                        <span id="detectionCount" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Status:</span>
+                        <span id="statusText" class="stat-value">Stopped</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="rickrollContainer" class="rickroll-container hidden">
+            <div class="rickroll-overlay">
+                <h1>🎵 CAUGHT DOOMSCROLLING! 🎵</h1>
+                <p>Get back to work!</p>
+                <video id="rickrollVideo" src="/static/rickroll.mp4" autoplay loop></video>
+            </div>
+        </div>
+
+        <footer>
+            <p>Inspired by <a href="https://github.com/kristelTech/Doomscrolling_Blocker" target="_blank">kristelTech/Doomscrolling_Blocker</a></p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
