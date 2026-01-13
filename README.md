@@ -1,138 +1,67 @@
 # Doomscrolling Blocker 📱🚫
 
-A Python program that uses your webcam to detect when you're looking down at your phone (aka doomscrolling) and roasts you to get back to work! Features an automatic rickroll video popup when caught!
+A powerful application that uses your webcam to detect when you're looking down at your phone (aka doomscrolling) and triggers a Rickroll punishment to get you back to focus!
 
-## Features
-
-- **Real-time face and eye tracking** using OpenCV
-- **Doomscrolling detection** - detects when you tilt your head down
-- **Motivational roasting** - displays harsh but motivating messages when caught
-- **Rickroll punishment** - automatically plays `rickroll.mp4` when you're doomscrolling
-- **Auto-close video** - stops the video when you return to good posture
-- **Automatic fallback** - works with dlib or OpenCV Haar Cascades
-- **Configurable** - customize detection thresholds, messages, and more via `config.json`
-- **Logging** - detailed logs saved to `doomscroll_blocker.log`
-- **Auto-recovery** - automatically restarts if camera disconnects
-
-## Installation
-
-### Quick Install
-
-```bash
-pip install -r requirements.txt
-```
-
-### Manual Install
-
-#### Basic (OpenCV only)
-
-```bash
-pip install opencv-python numpy
-```
-
-#### Advanced (Better accuracy with dlib)
-
-```bash
-pip install opencv-python numpy dlib
-
-# Download the face landmarks model
-wget http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2
-bunzip2 shape_predictor_68_face_landmarks.dat.bz2
-```
-
-### Setup
-
-1. Place your `rickroll.mp4` file in the project directory
-2. Make sure QuickTime Player (macOS), VLC (Linux), or default video player (Windows) is installed
-3. (Optional) Customize `config.json` to your preferences
-
-## Usage
-
-```bash
-python main.py
-```
-
-- The program will open your webcam
-- Look at the screen normally = Green "Good posture!" message
-- Look down at your phone = Red warning with roasting messages + **RICKROLL VIDEO AUTOPLAY** 🎵
-- Return to good posture = Video automatically closes
-- Press **'q'** to quit
-
-## Configuration
-
-Edit `config.json` to customize the behavior:
-
-```json
-{
-  "camera": {
-    "preferred_index": 0,
-    "warmup_seconds": 2.0,
-    "retry_delay_seconds": 5
-  },
-  "detection": {
-    "threshold_frames": 1,
-    "face_position_ratio": 0.58,
-    "eye_position_ratio": 0.6
-  },
-  "roasting": {
-    "cooldown_seconds": 3,
-    "messages": [
-      "Your custom roast messages here!"
-    ]
-  },
-  "rickroll": {
-    "video_path": "rickroll.mp4",
-    "enabled": true
-  }
-}
-```
-
-## How It Works
-
-1. **Face Detection**: Detects your face using either dlib or OpenCV Haar Cascades
-2. **Posture Analysis**: Tracks head tilt and eye position
-3. **Doomscroll Detection**: Triggers when:
-   - Your head tilts down significantly
-   - Your face moves to the lower portion of the frame
-   - Your eyes are positioned low in your face region
-4. **Roasting**: Displays motivational (harsh) messages every 3 seconds when caught
-5. **Rickroll**: Automatically opens and plays `rickroll.mp4` when doomscrolling detected
-6. **Auto-stop**: Closes the video when you return to normal posture
-
-## Requirements
-
-- Python 3.13+
-- Webcam
-- OpenCV (`opencv-python`)
-- NumPy
-- dlib (optional, for better accuracy)
-- QuickTime Player (macOS) or VLC (Linux) or Windows Media Player (Windows)
-- `rickroll.mp4` file in project directory
-
-## Troubleshooting
-
-**Video doesn't autoplay on macOS:**
-- Make sure QuickTime Player is installed
-- The script uses AppleScript to force autoplay
-- Check System Settings > Privacy & Security > Automation for terminal permissions
-
-**Video doesn't close automatically:**
-- The script sends a kill command to QuickTime Player
-- You may need to manually close it if the process detection fails
-
-**Detection is too sensitive/not sensitive enough:**
-- Adjust the thresholds in `config.json`
-- Change `face_position_ratio` to a higher (less sensitive) or lower (more sensitive) value
-
-**Camera not found:**
-- Check logs in `doomscroll_blocker.log`
-- Ensure your terminal/IDE has camera permissions (System Settings > Privacy & Security > Camera)
-- Try changing `preferred_index` in `config.json`
-
-## License
-
-Free to use. Stay productive! 💪
+> [!NOTE]
+> This project is inspired by and based on [kristelTech/Doomscrolling_Blocker](https://github.com/kristelTech/Doomscrolling_Blocker). This version adds a premium web interface, improved detection smoothing, and a "Back to Work" cooldown mechanism.
 
 ---
 
-*Inspired by [kristelTech/Doomscrolling_Blocker](https://github.com/kristelTech/Doomscrolling_Blocker)*
+## 🚀 Web Edition (Recommended)
+
+The Web Edition provides a premium, glassmorphism-style dashboard with real-time feedback and a state-of-the-art detection visualization.
+
+### Features
+- **Premium Dark Mode UI**: Modern glassmorphism aesthetic with smooth animations.
+- **Real-time Visualization**: Bounding boxes for face and eye detection.
+- **Stateful Smoothing**: Prevents false triggers from brief glances; triggers only after 2 consecutive "bad" detections.
+- **"Back to Work" Mechanism**: Manual dismissal with a 10-second cooldown period.
+- **Cloud Ready**: Optimized for deployment on Render.com.
+
+### Local Setup (Web)
+1. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. **Run the Application**:
+   ```bash
+   cd web
+   python -m uvicorn app:app --reload
+   ```
+3. **Access the App**: Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
+
+### Cloud Deployment (Render)
+1. **Fork/Push** this repository to GitHub.
+2. **Create New Web Service** on Render.
+3. **Build Command**: `pip install -r requirements.txt`
+4. **Start Command**: `cd web && python -m uvicorn app:app --host 0.0.0.0 --port $PORT`
+5. **Add Environment Variables**: Ensure `PORT` is set (Render does this automatically).
+
+---
+
+## 💻 Desktop Edition (Legacy)
+
+The original CLI/GUI version using AppleScript for macOS control.
+
+### Usage
+1. Install dependencies: `pip install -r requirements.txt`
+2. Run: `python main.py`
+3. Press **'q'** to quit.
+
+---
+
+## ⚙️ Configuration
+
+Customize behavior in `config.json`:
+- `face_position_ratio`: Increase for less sensitivity, decrease for more.
+- `roasting.messages`: Add your own motivational insults.
+- `camera.preferred_index`: If you have multiple webcams.
+
+## 🛠️ Requirements
+- Python 3.10+
+- Webcam
+- OpenCV
+- `rickroll.mp4` (included in `web/static/`)
+
+## 📜 License
+Free to use. Stay focused! 💪
