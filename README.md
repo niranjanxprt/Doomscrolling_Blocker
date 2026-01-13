@@ -64,4 +64,4 @@ Customize behavior in `config.json`:
 - `rickroll.mp4` (included in `web/static/`)
 
 ## 📜 License
-Free to use. Stay focused! 💪
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. Stay focused! 💪
