@@ -84,16 +84,17 @@ class DoomscrollDetectorAPI:
             frame_height = frame.shape[0]
             face_position_ratio = face_center_y / frame_height
             
-            # Match main.py thresholds for better sensitivity
-            if face_position_ratio > 0.58:
+            # ULTRA SENSITIVE thresholds for web version
+            if face_position_ratio > 0.50:
                 detection_score += 2
-            elif face_position_ratio > 0.52:
+            elif face_position_ratio > 0.45:
                 detection_score += 1
             
             aspect_ratio = h / w
             if aspect_ratio < 1.1:
                 detection_score += 1
             
+            eye_position_in_face = 0
             if len(eyes) >= 2:
                 for (ex, ey, ew, eh) in eyes:
                     boxes.append({
@@ -107,20 +108,19 @@ class DoomscrollDetectorAPI:
                 avg_eye_y = sum(eye_y_positions) / len(eye_y_positions)
                 eye_position_in_face = (avg_eye_y - y) / h
                 
-                # Match main.py eye level thresholds
-                if eye_position_in_face > 0.60:
+                # Ultra sensitive eye level
+                if eye_position_in_face > 0.55:
                     detection_score += 2
-                elif eye_position_in_face > 0.52:
+                elif eye_position_in_face > 0.50:
                     detection_score += 1
             elif len(eyes) < 2:
-                # One eye or no eyes often happens when looking down sharply
                 detection_score += 1
             
-            # Threshold of 3 (was 4) to be more responsive like main.py
+            # Threshold of 3 to trigger
             if detection_score >= 3:
                 is_doomscrolling = True
                 
-            logger.info(f"Detection - Ratio: {face_position_ratio:.2f}, Score: {detection_score}")
+            logger.info(f"DEBUG: Score={detection_score}, FaceRatio={face_position_ratio:.2f}, EyeLevel={eye_position_in_face:.2f}, Eyes={len(eyes)}")
         
         return is_doomscrolling, boxes
 
