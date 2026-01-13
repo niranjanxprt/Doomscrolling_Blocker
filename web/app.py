@@ -116,11 +116,11 @@ class DoomscrollDetectorAPI:
             elif len(eyes) < 2:
                 detection_score += 1
             
-            # Threshold of 3 to trigger
+            # Match main.py logic: Score 3+ is bad
             if detection_score >= 3:
                 is_doomscrolling = True
                 
-            logger.info(f"DEBUG: Score={detection_score}, FaceRatio={face_position_ratio:.2f}, EyeLevel={eye_position_in_face:.2f}, Eyes={len(eyes)}")
+            logger.info(f"DETECTION [OPENCV]: Score={detection_score}, FaceRatio={face_position_ratio:.2f}, EyeLevel={eye_position_in_face:.2f}, Eyes={len(eyes)}, Result={is_doomscrolling}")
         
         return is_doomscrolling, boxes
 
@@ -186,13 +186,15 @@ async def detect(data: ImageData):
         is_doomscrolling, boxes = detector.detect_doomscroll(frame)
         
         import random
-        message = random.choice(detector.roasts) if is_doomscrolling else 'Good posture!'
+        message = random.choice(detector.roasts) if is_doomscrolling else 'Focusing... Good posture!'
         
-        return DetectionResponse(
+        response = DetectionResponse(
             doomscrolling=is_doomscrolling,
             message=message,
             boxes=boxes
         )
+        logger.info(f"API RESPONSE: {response.doomscrolling} - {len(response.boxes)} boxes")
+        return response
     
     except Exception as e:
         logger.error(f"Detection error: {e}")
