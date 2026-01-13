@@ -6,7 +6,7 @@ let detectionInterval;
 let cooldownActive = false;
 let lastDetectionTime = 0;
 let consecutiveBadDetections = 0;
-const BAD_DETECTION_THRESHOLD = 2; // Trigger faster (was 3)
+const BAD_DETECTION_THRESHOLD = 1; // Immediate trigger for verification (was 2)
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -82,6 +82,7 @@ async function captureAndDetect() {
         });
 
         const result = await response.json();
+        console.log('Detection response:', result);
 
         // Draw detection squares
         drawDetectionBoxes(result.boxes, result.doomscrolling);
@@ -102,7 +103,7 @@ async function captureAndDetect() {
             }
         } else {
             consecutiveBadDetections = 0;
-            updateStatus('Focused', 'Excellent posture!', 'good', '✅');
+            updateStatus('Focused', result.message || 'Monitoring active...', 'good', '✅');
         }
     } catch (error) {
         console.error('Detection error:', error);

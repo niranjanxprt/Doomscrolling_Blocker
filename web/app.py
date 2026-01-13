@@ -84,10 +84,10 @@ class DoomscrollDetectorAPI:
             frame_height = frame.shape[0]
             face_position_ratio = face_center_y / frame_height
             
-            # ULTRA SENSITIVE thresholds for web version
-            if face_position_ratio > 0.50:
+            # Match main.py logic EXACTLY
+            if face_position_ratio > 0.58:
                 detection_score += 2
-            elif face_position_ratio > 0.45:
+            elif face_position_ratio > 0.52:
                 detection_score += 1
             
             aspect_ratio = h / w
@@ -186,7 +186,7 @@ async def detect(data: ImageData):
         is_doomscrolling, boxes = detector.detect_doomscroll(frame)
         
         import random
-        message = random.choice(detector.roasts) if is_doomscrolling else 'Focusing... Good posture!'
+        message = random.choice(detector.roasts) if is_doomscrolling else 'Monitoring... Good posture!'
         
         response = DetectionResponse(
             doomscrolling=is_doomscrolling,
